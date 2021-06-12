@@ -30,10 +30,23 @@ class Node:
     @predecessor.setter
     def predecessor(self, new_id):
         self.ft_node[0] = new_id
+        self._predecessor_keys = self.predecessor.keys
     
     @property
     def finger_table(self):
         return [(self.ft_start[i], self.ft_node[i]) for i in range(1, self.m + 1)]
+
+    @property
+    def keys(self):
+        return self._keys
+
+    @property
+    def predecessor_keys(self):
+        return self._predecessor_keys
+   
+    @predecessor_keys.setter
+    def predecessor_keys(self, new_keys):
+        self._predecessor_keys = new_keys
 
     def inrange(self, key, lwb, upb):                                         
         lwb = lwb % self.MAXPROC
@@ -72,7 +85,8 @@ class Node:
         return self
 
     def join(self, nodeid):
-        self.keys = []
+        self._keys = {}
+        self._predecessor_keys = {}
 
         self.ft_start = [None] * (self.m + 1)
         for i in range(1, self.m + 1):
@@ -115,6 +129,16 @@ class Node:
     def init_finger_table(self, node):
         self.successor = node.find_successor(self.ft_start[1]).id
         self.predecessor = self.successor.predecessor.id
+
+        keys_ = self.successor.keys.keys()
+        print(keys_)
+        for key in keys_:
+            if self.inrange(key,self.predecessor.id + 1,self.id + 1):
+                self.keys[key] = self.successor.pop_key(key)  
+        print("keys successor")             
+        print(self.successor.keys)
+        self.successor.successor.predecessor_keys = self.successor.keys
+
         self.successor.predecessor = self.id
 
         for i in range(1, self.m):
@@ -138,6 +162,38 @@ class Node:
             if p.id != s: ####
                 p.update_finger_table(s, i)
 
+    def lookup(self, key):
+        if self.inrange(key, self.predecessor.id + 1 , self.id + 1):
+            return self
+        else:
+            for k in range(1, self.m):
+                if self.inrange(key, self.ft_start[k], self.ft_start[k + 1]): 
+                    node = get_node_instance(self.ft_node[k])       
+                    return node.lookup(key)
+            else:
+                node = get_node_instance(self.ft_node[self.m])
+                return node.lookup(key)
+
+    def update_key(self, key, content):
+        self._keys[key] = content
+
+    def pop_key(self, key):
+        return self._keys.pop(key)
+    
+    def update_key_in_succe(self, key, content):
+        self._predecessor_keys[key] = content
+    
+    def save_key(self, key, content):
+        node = self.lookup(key)
+        node.update_key(key, content)
+        node.successor.update_key_in_succe(key, content)
+
+    def get_content(self, key):
+        node = self.lookup(key)
+        if key in node.keys.keys:
+            return node.keys[key]
+        return None        
+
 
 def get_node_instance(id):
     return Pyro4.Proxy(f'PYRONAME:{str(id)}')
@@ -156,7 +212,8 @@ def print_finger_table(node):
     print(f'Successor: {node.successor.id}')
     for i in node.finger_table:
         print(f'Start: {i[0]}   Node: {i[1]}')
-
+    print(node.keys)
+    print(node.predecessor_keys)
 
 def print_nodes(server_nodes) :
     while True:
