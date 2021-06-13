@@ -14,7 +14,15 @@ class NodesList:
         return self._m
 
     def get_disponible_id(self):
-        new_id = random.choice(list(set([i for i in range(self.MAXPROC)]) - set(self.members)))
+        #new_id = random.choice(list(set([i for i in range(self.MAXPROC)]) - set(self.members)))
+        if 2 not in self.members:
+            new_id = 2
+        elif 6 not in self.members:
+            new_id = 6
+        elif 3 not in self.members:
+            new_id = 3
+        elif 5 not in self.members:
+            new_id = 5
         self.members.append(new_id)
         print(self.members)  
         return new_id
@@ -22,7 +30,8 @@ class NodesList:
     def get_random_node(self):
         if len(self.members) == 0:
             return None
-        return random.choice(self.members)
+        # return random.choice(self.members)
+        return 2
 
     def get_members(self):
         return self.members
