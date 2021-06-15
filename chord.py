@@ -6,7 +6,7 @@ import sys
 from utils import get_node_instance, hashing
 
 @Pyro4.expose
-class Node:
+class ChordNode:
     def __init__(self, id, m):
         self._id = id
         self.m = m
@@ -128,7 +128,7 @@ class Node:
                 self.update_others()
                 print(f'\nJoin node {self.id} with {nodeid}')
             except:
-                print(f'\nSomething went wrong trying to join node {self.id} with {nodeid}')
+                print(f'\nError: Could not join node {self.id} with {nodeid}')
                 return False
         
         print_node_info(self)
@@ -217,15 +217,18 @@ class Node:
             self._ft_node[i] = node.id
 
     def update_succesors_list(self):
-        new_succ = None
-        if not self._successors_list:
-            new_succ = self.successor
-        elif len(self._successors_list) <= self.m:
-            new_succ = self._successors_list[-1]
-            new_succ = get_node_instance(new_succ)
-        
-        if new_succ is not None:
-            self._successors_list.append(new_succ.id)
+        while True:
+            new_succ = None
+            if not self._successors_list:
+                new_succ = self.successor
+            elif len(self._successors_list) <= self.m:
+                new_succ = self._successors_list[-1]
+                new_succ = get_node_instance(new_succ)
+            
+            if new_succ is not None:
+                self._successors_list.append(new_succ.id)
+
+            time.sleep(1)
 
     def lookup(self, key):
         '''
@@ -260,7 +263,7 @@ class Node:
             print(f'Key {key} was deleted in node {self.id}')
             return value
         
-        print(f'Something went wrong trying to delete key {key} in node {self.id}')
+        print(f'Error: Could not delete key {key} in node {self.id}')
         return None 
     
     def update_predecessor_key(self, key, value):
@@ -283,7 +286,7 @@ class Node:
             print(f'Key {key} was saved in node {node.id}')
             return True
         
-        print(f'Something went wrong trying to save key {key} in the system')
+        print(f'Error: Could not save key {key} in the system')
         return False
 
     def get_value(self, key):
@@ -294,7 +297,6 @@ class Node:
         if node is not None and key in node.keys.keys():
             return node.keys[key]
         
-        print(f'Something went wrong trying to get the value of key {key} in the system')
         return None        
 
 
@@ -315,8 +317,8 @@ def print_node_info(node):
         print(f'Successor: {node.ft_node[1]}')
         for i in node.finger_table:
             print(f'Start: {i[0]}   Node: {i[1]}')
-        print(f'Keys: {node.keys}')
-        print(f'Predecesor keys: {node.predecessor_keys}')
+        print(f'Keys: {list(node.keys.keys())}')
+        print(f'Predecesor keys: {list(node.predecessor_keys.keys())}')
 
 
 def print_node_function(node) :
@@ -327,13 +329,13 @@ def print_node_function(node) :
 
 def main(address, bits, node_address = None):
     id = hashing(bits, address)
-    node = Node(id, bits)
+    node = ChordNode(id, bits)
     
     host_ip, host_port = address.split(':')
     daemon = Pyro4.Daemon(host=host_ip, port=int(host_port))
     uri = daemon.register(node)
     ns = Pyro4.locateNS()
-    ns.register(str(id), uri)
+    ns.register(f'CHORD{id}', uri)
 
     request_thread = threading.Thread(target=daemon.requestLoop)
     request_thread.start()
@@ -348,6 +350,9 @@ def main(address, bits, node_address = None):
     stabilize_thread.start()
 
     print_tables_thread = threading.Thread(target=print_node_function, args=[node])
+    print_tables_thread.start()
+
+    print_tables_thread = threading.Thread(target=node.update_succesors_list, args=[])
     print_tables_thread.start()
 
 
