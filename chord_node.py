@@ -1,9 +1,9 @@
 import Pyro4
-import Pyro4.errors
 import threading
 import time
 import random
-
+import sys
+from utils import get_node_instance, hashing
 
 @Pyro4.expose
 class Node:
@@ -11,7 +11,7 @@ class Node:
         self._id = id
         self.m = m
         self.MAXPROC = pow(2, m)
-        
+                
     @property
     def id(self):
         return self._id
@@ -101,7 +101,7 @@ class Node:
                 return get_node_instance(node_id)
         return self
 
-    def join(self, nodeid):
+    def join(self, nodeid = None):
         '''
         Return True if the node was successfully joined to 
         the system, False in other case
@@ -116,7 +116,7 @@ class Node:
 
         self._ft_node = [None] * (self.m + 1)
         # Is the first node in the ring
-        if nodeid is None:  
+        if nodeid is None:
             for i in range(0, self.m + 1):
                 self._ft_node[i] = self.id
             print(f'\nJoin of first node {self.id}')
@@ -131,7 +131,7 @@ class Node:
                 print(f'\nSomething went wrong trying to join node {self.id} with {nodeid}')
                 return False
         
-        print_finger_table(self)
+        print_node_info(self)
         return True
 
     def init_finger_table(self, node):
@@ -216,7 +216,7 @@ class Node:
         if node is not None:
             self._ft_node[i] = node.id
 
-    def update_succesor_list(self):
+    def update_succesors_list(self):
         new_succ = None
         if not self._successors_list:
             new_succ = self.successor
@@ -298,15 +298,6 @@ class Node:
         return None        
 
 
-def get_node_instance(id):
-    with Pyro4.Proxy(f'PYRONAME:{str(id)}') as p:
-        try:
-            p._pyroBind()
-            return p
-        except Pyro4.errors.CommunicationError:
-            return None
-
-
 def stabilize_function(node):
     while True:
         try:
@@ -317,50 +308,53 @@ def stabilize_function(node):
             pass
 
 
-def print_finger_table(node):
+def print_node_info(node):
     if node is not None:
-        print(f'Node {node.id}')
+        print(f'\nNode {node.id}')
         print(f'Predecessor: {node.ft_node[0]}')
         print(f'Successor: {node.ft_node[1]}')
         for i in node.finger_table:
             print(f'Start: {i[0]}   Node: {i[1]}')
-        print(node.keys)
-        print(node.predecessor_keys)
+        print(f'Keys: {node.keys}')
+        print(f'Predecesor keys: {node.predecessor_keys}')
 
 
-def print_nodes(server_nodes) :
+def print_node_function(node) :
     while True:
-        nodes_id = server_nodes.get_members()
-        print(nodes_id)
-        print('\nFinger Tables')
-        for id in nodes_id:
-            node = get_node_instance(id)
-            print_finger_table(node)
+        print_node_info(node)
         time.sleep(30)  
 
 
-def main():
-    server_nodes = get_node_instance('SERVERNODES')
-    init_node_id = server_nodes.get_random_node()
-    new_id = server_nodes.get_disponible_id()
-
-    node = Node(new_id, server_nodes.m)
-    daemon = Pyro4.Daemon()
+def main(address, bits, node_address = None):
+    id = hashing(bits, address)
+    node = Node(id, bits)
+    
+    host_ip, host_port = address.split(':')
+    daemon = Pyro4.Daemon(host=host_ip, port=int(host_port))
     uri = daemon.register(node)
     ns = Pyro4.locateNS()
-    ns.register(str(new_id), uri)
+    ns.register(str(id), uri)
 
     request_thread = threading.Thread(target=daemon.requestLoop)
     request_thread.start()
 
-    node.join(init_node_id)
+    if node_address is None:
+        node.join()
+    else:
+        node_id = hashing(bits, node_address)
+        node.join(node_id)
 
     stabilize_thread = threading.Thread(target=stabilize_function, args=[node])
     stabilize_thread.start()
 
-    print_tables_thread = threading.Thread(target=print_nodes, args=[server_nodes])
+    print_tables_thread = threading.Thread(target=print_node_function, args=[node])
     print_tables_thread.start()
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) == 3:
+        main(address=sys.argv[1], bits=int(sys.argv[2]))
+    elif len(sys.argv) == 4:
+        main(address=sys.argv[1], bits=int(sys.argv[3]), node_address=sys.argv[2])
+    else:
+        print('Error: Missing arguments')
