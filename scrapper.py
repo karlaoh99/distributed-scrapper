@@ -21,19 +21,21 @@ class ScrapperNode:
                 temp_urls = []
                 for url in urls:
                     hash = hashing(self.m, url)
-                    html = chord_node.get_value(hash)
-                    if html is None:
-                        html = self.load_html(url)
-                        if html is not None:
-                            chord_node.save_key(hash, html)
-                        else:
-                            print(f'Error: Could not load the html of {url}')
-                            continue
-
-                    html_urls = self.parse_html(html)
-                    htmls.append(html)
-                    temp_urls.extend(html_urls)
-
+                    try:
+                        html = chord_node.get_value(hash,url)
+                        if html is None:
+                            html = self.load_html(url)
+                            if html is not None:
+                                chord_node.save_key(hash,url, html)
+                            else:
+                                print(f'Error: Could not load the html of {url}')
+                                continue
+                            
+                        html_urls = self.parse_html(html)
+                        htmls.append(html)
+                        temp_urls.extend(html_urls)
+                    except:
+                        pass    
                 d -= 1
                 urls = temp_urls
             return htmls

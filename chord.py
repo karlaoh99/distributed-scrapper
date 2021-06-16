@@ -248,32 +248,32 @@ class ChordNode:
                     if node is not None:
                         return node.lookup(key)
 
-    def update_key(self, key, value):
+    def update_key(self, key,url, value):
         '''
         Update the value of a key in local node 
         '''
-        self._keys[key] = value
+        self._keys[key] = (url, value)
 
     def pop_key(self, key):
         '''
         Delete a key in local node and returns its value
         '''
         if key in self._keys.keys():
-            value = self._keys.pop(key) 
+            (url,value) = self._keys.pop(key) 
             print(f'Key {key} was deleted in node {self.id}')
-            return value
+            return (url,value)
         
         print(f'Error: Could not delete key {key} in node {self.id}')
         return None 
     
-    def update_predecessor_key(self, key, value):
+    def update_predecessor_key(self, key,url, value):
         '''
         Update the value of a key in predecessor_keys dictionary 
         in local node
         '''
-        self._predecessor_keys[key] = value
+        self._predecessor_keys[key] = (url,value)
     
-    def save_key(self, key, value):
+    def save_key(self, key,url, value):
         '''
         Save a key and its value in the system and return 
         True if the operation was successfully and False in
@@ -281,22 +281,22 @@ class ChordNode:
         '''
         node = self.lookup(key)
         if node is not None:
-            node.update_key(key, value)
-            node.successor.update_predecessor_key(key, value)
+            node.update_key(key, url,value)
+            node.successor.update_predecessor_key(key,url, value)
             print(f'Key {key} was saved in node {node.id}')
             return True
         
         print(f'Error: Could not save key {key} in the system')
         return False
 
-    def get_value(self, key):
+    def get_value(self, key,url):
         '''
         Return the value of a key stored in the system
         '''
         node = self.lookup(key)
-        if node is not None and key in node.keys.keys():
-            return node.keys[key]
-        
+        if node is not None and key in node.keys.keys() and node.keys[key][0] == url:
+            return node.keys[key][1]
+
         return None        
 
 
