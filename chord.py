@@ -216,6 +216,9 @@ class ChordNode:
         if node is not None:
             self._ft_node[i] = node.id
 
+    def get_successor_list(self):
+        return self._successors_list
+
     def update_succesors_list(self):
         while True:
             new_succ = None
@@ -248,32 +251,38 @@ class ChordNode:
                     if node is not None:
                         return node.lookup(key)
 
-    def update_key(self, key,url, value):
+    def update_key(self, key, value):
         '''
         Update the value of a key in local node 
         '''
-        self._keys[key] = (url, value)
+        try:
+            self._keys[key].append(value)
+        except:
+             self.keys[key] = value    
 
     def pop_key(self, key):
         '''
         Delete a key in local node and returns its value
         '''
         if key in self._keys.keys():
-            (url,value) = self._keys.pop(key) 
+            dict_= self._keys.pop(key) 
             print(f'Key {key} was deleted in node {self.id}')
-            return (url,value)
+            return dict_
         
         print(f'Error: Could not delete key {key} in node {self.id}')
         return None 
     
-    def update_predecessor_key(self, key,url, value):
+    def update_predecessor_key(self, key, value):
         '''
         Update the value of a key in predecessor_keys dictionary 
         in local node
         '''
-        self._predecessor_keys[key] = (url,value)
+        try:
+            self._predecessor_keys[key].append(value)
+        except:
+            self._predecessor_keys[key] = value    
     
-    def save_key(self, key,url, value):
+    def save_key(self, key,value):
         '''
         Save a key and its value in the system and return 
         True if the operation was successfully and False in
@@ -281,8 +290,11 @@ class ChordNode:
         '''
         node = self.lookup(key)
         if node is not None:
-            node.update_key(key, url,value)
-            node.successor.update_predecessor_key(key,url, value)
+            print("entro node es not none")
+            node.update_key(key, value)
+            print("update no tiene problema")
+            node.successor.update_predecessor_key(key,value)
+            print("update_predecesor tampoco no tiene problema")
             print(f'Key {key} was saved in node {node.id}')
             return True
         
@@ -294,9 +306,11 @@ class ChordNode:
         Return the value of a key stored in the system
         '''
         node = self.lookup(key)
-        if node is not None and key in node.keys.keys() and node.keys[key][0] == url:
-            return node.keys[key][1]
-
+        if node is not None and key in node.keys.keys():
+            for item in node.keys[key]:
+                if item[0] == url:
+                    return item[1]
+            
         return None        
 
 
@@ -319,7 +333,8 @@ def print_node_info(node):
             print(f'Start: {i[0]}   Node: {i[1]}')
         print(f'Keys: {list(node.keys.keys())}')
         print(f'Predecesor keys: {list(node.predecessor_keys.keys())}')
-
+        print("lista sucesores")
+        print(node.get_successor_list())
 
 def print_node_function(node) :
     while True:

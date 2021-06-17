@@ -11,31 +11,56 @@ class ScrapperNode:
     def __init__(self, chord_address, m):
         self.chord_id = hashing(m, chord_address)
         self.m = m
+        self.chord_succlist = []
     
+    def get_chord_successor_list(self):
+        while True:
+            node = get_node_instance(self.chord_id)
+            if node is not None:
+                try:
+                    list_ = node.get_successor_list()
+                    self.chord_succlist = list_ 
+                except:
+                    pass
+    def change_chord_node(self):
+        for  id_ in self.chord_succlist:
+            node = get_node_instance(id_)
+            if node is not None:
+                self.chord_id = node.id
+                return node
+        return None            
+
     def get_html(self, url, d):
         chord_node = get_node_instance(self.chord_id)
+        if chord_node is None:
+            chord_node = self.change_chord_node()
         if chord_node is not None:
             htmls = []
             urls = [url]
             while d >= 0 and urls:
                 temp_urls = []
-                for url in urls:
+                count = 0
+                while count < len(urls):
+                    url = urls[count]
                     hash = hashing(self.m, url)
                     try:
                         html = chord_node.get_value(hash,url)
                         if html is None:
                             html = self.load_html(url)
                             if html is not None:
-                                chord_node.save_key(hash,url, html)
+                                chord_node.save_key(hash,(url, html))
                             else:
                                 print(f'Error: Could not load the html of {url}')
-                                continue
-                            
+                                count += 1
+                                continue        
                         html_urls = self.parse_html(html)
                         htmls.append(html)
                         temp_urls.extend(html_urls)
+                        count += 1
                     except:
-                        pass    
+                        chord_node = self.change_chord_node() 
+                        if chord_node is None:
+                            break
                 d -= 1
                 urls = temp_urls
             return htmls
@@ -74,6 +99,8 @@ def main(address, chord_address, bits):
 
     request_thread = threading.Thread(target=daemon.requestLoop)
     request_thread.start()
+    chord_sucessor_list_thread = threading.Thread(target=node.get_chord_successor_list)
+    chord_sucessor_list_thread.start()
 
 
 if __name__ == '__main__':
