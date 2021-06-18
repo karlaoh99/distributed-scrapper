@@ -41,7 +41,7 @@ class ScrapperNode:
             return htmls
             
         else:
-            print('Error: Could not connect with chord node')
+            print(f'Error: Could not connect with chord node {self.chord_id}')
             return None
 
     def load_html(self, url):
@@ -79,5 +79,7 @@ def main(address, chord_address, bits):
 if __name__ == '__main__':
     if len(sys.argv) == 4:
         main(sys.argv[1], sys.argv[2], int(sys.argv[3]))
+    elif len(sys.argv) < 4:
+        print('Error: Missing arguments, you must enter the scrapper node address, the chord node address and the number of bits')
     else:
-        print('Error: Missing arguments')
+        print('Error: Too many arguments, you must enter only the scrapper node address, the chord node address and the number of bits')

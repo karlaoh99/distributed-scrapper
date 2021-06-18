@@ -1,6 +1,6 @@
 import Pyro4
-import Pyro4.errors
 import hashlib
+
 
 def get_node_instance(id):
     return get_proxy(f'CHORD{id}')
@@ -16,7 +16,7 @@ def get_proxy(id):
         try:
             p._pyroBind()
             return p
-        except Pyro4.errors.CommunicationError:
+        except:
             return None
 
 

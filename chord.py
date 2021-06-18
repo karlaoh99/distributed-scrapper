@@ -11,10 +11,14 @@ class ChordNode:
         self._id = id
         self.m = m
         self.MAXPROC = pow(2, m)
-                
+
     @property
     def id(self):
         return self._id
+
+    @property
+    def successors_list(self):
+        return self._successors_list
     
     @property
     def successor(self):
@@ -172,7 +176,10 @@ class ChordNode:
         If s is ith finger of local node, update local node's finger table with s
         '''
         if self.inrange(s, self.id, self._ft_node[i]):
-            self._ft_node[i] = s
+            if i == 1:
+                self.successor = s
+            else:
+                self._ft_node[i] = s
             p = self.predecessor
             if p is not None and p.id != s:
                 p.update_finger_table(s, i)
@@ -218,15 +225,21 @@ class ChordNode:
 
     def update_succesors_list(self):
         while True:
-            new_succ = None
             if not self._successors_list:
-                new_succ = self.successor
-            elif len(self._successors_list) <= self.m:
-                new_succ = self._successors_list[-1]
-                new_succ = get_node_instance(new_succ)
+                if self.successor is not None and self.successor.id != self.id:
+                    self._successors_list.append(self.successor.id) 
             
-            if new_succ is not None:
-                self._successors_list.append(new_succ.id)
+            elif len(self._successors_list) < self.m:
+                for i in range(len(self._successors_list)):
+                    succ = get_node_instance(self._successors_list[i])
+                    if succ is not None:
+                        new_succ = get_node_instance(succ.successor.id)
+                        if new_succ is not None and new_succ.id != self.id and new_succ.id not in self._successors_list:
+                            # if i == len(self._successors_list) - 1:
+                            #     self._successors_list.append(new_succ.id)
+                            # else:
+                            self._successors_list.insert(i+1, new_succ.id)
+                            break
 
             time.sleep(1)
 
@@ -248,7 +261,7 @@ class ChordNode:
                     if node is not None:
                         return node.lookup(key)
 
-    def update_key(self, key,url, value):
+    def update_key(self, key, url, value):
         '''
         Update the value of a key in local node 
         '''
@@ -319,6 +332,7 @@ def print_node_info(node):
             print(f'Start: {i[0]}   Node: {i[1]}')
         print(f'Keys: {list(node.keys.keys())}')
         print(f'Predecesor keys: {list(node.predecessor_keys.keys())}')
+        print(f'Successors list: {node.successors_list}')
 
 
 def print_node_function(node) :
@@ -341,10 +355,13 @@ def main(address, bits, node_address = None):
     request_thread.start()
 
     if node_address is None:
-        node.join()
+        join_success = node.join()
     else:
         node_id = hashing(bits, node_address)
-        node.join(node_id)
+        join_success = node.join(node_id)
+
+    if not join_success:
+        return
 
     stabilize_thread = threading.Thread(target=stabilize_function, args=[node])
     stabilize_thread.start()
