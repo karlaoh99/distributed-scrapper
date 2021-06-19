@@ -5,6 +5,7 @@ import random
 import sys
 from utils import get_node_instance, hashing
 
+
 @Pyro4.expose
 class ChordNode:
     def __init__(self, id, m):
@@ -208,7 +209,7 @@ class ChordNode:
         if self.predecessor is None:
             for key in self._predecessor_keys.keys():
                 self._keys[key] = self._predecessor_keys[key]
-                if self.successor is not None:
+                if self.successor is not None and self.successor.id != self.id:
                     self.successor.update_predecessor_key(key, self._keys[key])
     
         if self.predecessor is None or self.inrange(node.id, self._ft_node[0] + 1, self.id):
@@ -223,9 +224,6 @@ class ChordNode:
         if node is not None:
             self._ft_node[i] = node.id
 
-    def get_successor_list(self):
-        return self._successors_list
-
     def update_succesors_list(self):
         while True:
             if not self._successors_list:
@@ -236,11 +234,8 @@ class ChordNode:
                 for i in range(len(self._successors_list)):
                     succ = get_node_instance(self._successors_list[i])
                     if succ is not None:
-                        new_succ = get_node_instance(succ.successor.id)
+                        new_succ = succ.successor
                         if new_succ is not None and new_succ.id != self.id and new_succ.id not in self._successors_list:
-                            # if i == len(self._successors_list) - 1:
-                            #     self._successors_list.append(new_succ.id)
-                            # else:
                             self._successors_list.insert(i+1, new_succ.id)
                             break
 
@@ -271,16 +266,16 @@ class ChordNode:
         try:
             self._keys[key].append(value)
         except:
-             self.keys[key] = value    
+             self.keys[key] = [value]    
 
     def pop_key(self, key):
         '''
         Delete a key in local node and returns its value
         '''
         if key in self._keys.keys():
-            dict_= self._keys.pop(key) 
+            value = self._keys.pop(key) 
             print(f'Key {key} was deleted in node {self.id}')
-            return dict_
+            return value
         
         print(f'Error: Could not delete key {key} in node {self.id}')
         return None 
@@ -291,11 +286,11 @@ class ChordNode:
         in local node
         '''
         try:
-            self._predecessor_keys[key].append(value)
+            self._predecessor_keys[key].extend(value)
         except:
             self._predecessor_keys[key] = value    
     
-    def save_key(self, key,value):
+    def save_key(self, key, value):
         '''
         Save a key and its value in the system and return 
         True if the operation was successfully and False in
@@ -303,11 +298,8 @@ class ChordNode:
         '''
         node = self.lookup(key)
         if node is not None:
-            print("entro node es not none")
             node.update_key(key, value)
-            print("update no tiene problema")
-            node.successor.update_predecessor_key(key,value)
-            print("update_predecesor tampoco no tiene problema")
+            node.successor.update_predecessor_key(key, [value])
             print(f'Key {key} was saved in node {node.id}')
             return True
         
@@ -344,8 +336,16 @@ def print_node_info(node):
         print(f'Successor: {node.ft_node[1]}')
         for i in node.finger_table:
             print(f'Start: {i[0]}   Node: {i[1]}')
-        print(f'Keys: {list(node.keys.keys())}')
-        print(f'Predecesor keys: {list(node.predecessor_keys.keys())}')
+        
+        print('Keys:')
+        for key in node.keys.keys():
+            for url, _ in node.keys[key]: 
+                print(key, url)
+        print('Predecessor keys:')
+        for key in node.predecessor_keys.keys():
+            for url, _ in node.predecessor_keys[key]: 
+                print(key, url)
+        
         print(f'Successors list: {node.successors_list}')
 
 
@@ -357,10 +357,20 @@ def print_node_function(node) :
 
 def main(address, bits, node_address = None):
     id = hashing(bits, address)
-    node = ChordNode(id, bits)
     
+    n = get_node_instance(id)
+    if n is not None:
+        print('Error: There is another node in the system with that address, please try another')
+        return
+        
     host_ip, host_port = address.split(':')
-    daemon = Pyro4.Daemon(host=host_ip, port=int(host_port))
+    try:
+        daemon = Pyro4.Daemon(host=host_ip, port=int(host_port))
+    except:
+        print('Error: There is another node in the system with that address, please try another')
+        return
+
+    node = ChordNode(id, bits)
     uri = daemon.register(node)
     ns = Pyro4.locateNS()
     ns.register(f'CHORD{id}', uri)

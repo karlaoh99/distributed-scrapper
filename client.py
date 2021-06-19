@@ -21,15 +21,14 @@ def main(scrapper_address):
     count_url = 0
 
     for url in urls:
+        if os.path.exists(f'url{count_url}'):
+            rmtree(f'url{count_url}')
+        os.makedirs(os.path.abspath(f'url{count_url}'))
+        
         url, depth = url.split(' ')
         try:
             count = 0
-            htmls = scrapper.get_html(url, depth)
-            
-            if os.path.exists(f'url{count_url}'):
-                rmtree(f'url{count_url}')
-            os.makedirs(os.path.abspath(f'url{count_url}'))
-            
+            htmls = scrapper.get_html(url, int(depth))
             for html in htmls:
                 fd = open(f'url{count_url}/url{count}.html', 'w+')
                 fd.write(html)
