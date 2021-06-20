@@ -1,13 +1,11 @@
-from hashlib import new
-from platform import node
 import time
 import sys
 import Pyro4
 import threading
 import requests
 from bs4 import BeautifulSoup
-from random import randint, random
-from utils import get_node_instance, get_scrapper_instance,hashing
+from random import randint
+from utils import get_node_instance, get_scrapper_instance, hashing
 
 
 @Pyro4.expose
@@ -20,8 +18,6 @@ class ScrapperNode:
         self.chord_succlist = []
         self._scrapperslist = []
         
-    
- 
     @property
     def scrappers_list(self):
         return self._scrapperslist 
@@ -56,7 +52,6 @@ class ScrapperNode:
         else:
             node = get_scrapper_instance(self.scrapper_address)
             try:
-                print(node)
                 self._scrapperslist = node.scrappers_list
                 self._scrapperslist.append(self.id)
                 list = self._scrapperslist
@@ -149,18 +144,14 @@ class ScrapperNode:
         return urls
 
     def print_node_info(self):
-        print("entro")
-        print(f'\nNode {self.id}')
-        print(f'\nChord node {self.chord_id}')
-        print(f'\nChord nodes list {self.chord_succlist}')
-        print(f'\nscrapper nodes list {self._scrapperslist}')
+        print(f'\nChord node: {self.chord_id}')
+        print(f'Chord node successors list: {self.chord_succlist}')
+        print(f'Scrappers list: {self._scrapperslist}')
             
-
     def print_node_function(self) :
         while True:
             self.print_node_info()
             time.sleep(30)  
-
 
 
 def main(address, chord_address, bits, scrapper_address = None):
@@ -187,12 +178,11 @@ def main(address, chord_address, bits, scrapper_address = None):
     else:
         print(f'Error : It was not possible to connect to the network because the node with ip and port {scrapper_address} does not exist')
 
+
 if __name__ == '__main__':
     if len(sys.argv) == 5:
-        main(sys.argv[1], sys.argv[3], int(sys.argv[4]),sys.argv[2]) 
-    elif len(sys.argv)== 4:
+        main(sys.argv[1], sys.argv[3], int(sys.argv[4]), sys.argv[2]) 
+    elif len(sys.argv) == 4:
         main(sys.argv[1], sys.argv[2], int(sys.argv[3]))
-    elif len(sys.argv) < 4:
-        print('Error: Missing arguments, you must enter the scrapper node address, the chord node address and the number of bits')
     else:
-        print('Error: Too many arguments, you must enter only the scrapper node address, the chord node address and the number of bits')
+        print('Error: Missing arguments')
