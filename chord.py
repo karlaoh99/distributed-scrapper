@@ -226,18 +226,21 @@ class ChordNode:
 
     def update_succesors_list(self):
         while True:
-            if not self._successors_list:
-                if self.successor is not None and self.successor.id != self.id:
-                    self._successors_list.append(self.successor.id) 
-            
-            elif len(self._successors_list) < self.m:
-                for i in range(len(self._successors_list)):
-                    succ = get_node_instance(self._successors_list[i])
-                    if succ is not None:
-                        new_succ = succ.successor
-                        if new_succ is not None and new_succ.id != self.id and new_succ.id not in self._successors_list:
-                            self._successors_list.insert(i+1, new_succ.id)
-                            break
+            try:
+                if not self._successors_list:
+                    if self.successor is not None and self.successor.id != self.id:
+                        self._successors_list.append(self.successor.id) 
+                
+                elif len(self._successors_list) < self.m:
+                    for i in range(len(self._successors_list)):
+                        succ = get_node_instance(self._successors_list[i])
+                        if succ is not None:
+                            new_succ = succ.successor
+                            if new_succ is not None and new_succ.id != self.id and new_succ.id not in self._successors_list:
+                                self._successors_list.insert(i+1, new_succ.id)
+                                break
+            except:
+                pass
 
             time.sleep(1)
 
@@ -264,9 +267,13 @@ class ChordNode:
         Update the value of a key in local node 
         '''
         try:
+            for url, _ in self._keys[key]:
+                if url == value[0]:
+                    return False
             self._keys[key].append(value)
         except:
-             self.keys[key] = [value]    
+             self.keys[key] = [value]   
+        return True 
 
     def pop_key(self, key):
         '''
@@ -298,9 +305,10 @@ class ChordNode:
         '''
         node = self.lookup(key)
         if node is not None:
-            node.update_key(key, value)
-            node.successor.update_predecessor_key(key, [value])
-            print(f'Key {key} was saved in node {node.id}')
+            success = node.update_key(key, value)
+            if success:
+                node.successor.update_predecessor_key(key, [value])
+                print(f'Key {key} was saved in node {node.id}')
             return True
         
         print(f'Error: Could not save key {key} in the system')
@@ -334,25 +342,20 @@ def print_node_info(node):
         print(f'\nNode {node.id}')
         print(f'Predecessor: {node.ft_node[0]}')
         print(f'Successor: {node.ft_node[1]}')
+        print('Finger table:')
         for i in node.finger_table:
-            print(f'Start: {i[0]}   Node: {i[1]}')
+            print(f'Start {i[0]}   Node {i[1]}')
         
         print('Keys:')
         for key in node.keys.keys():
             for url, _ in node.keys[key]: 
-                print(key, url)
-        print('Predecessor keys:')
-        for key in node.predecessor_keys.keys():
-            for url, _ in node.predecessor_keys[key]: 
-                print(key, url)
-        
-        print(f'Successors list: {node.successors_list}')
+                print(key, url)        
 
 
 def print_node_function(node) :
     while True:
         print_node_info(node)
-        time.sleep(30)  
+        time.sleep(10)  
 
 
 def main(address, bits, node_address = None):
@@ -360,7 +363,7 @@ def main(address, bits, node_address = None):
     
     n = get_node_instance(id)
     if n is not None:
-        print('Error: There is another node in the system with that address, please try another')
+        print('Error: There is another node in the system with the same id, please try another address')
         return
         
     host_ip, host_port = address.split(':')
@@ -375,7 +378,7 @@ def main(address, bits, node_address = None):
     ns = Pyro4.locateNS()
     ns.register(f'CHORD{id}', uri)
 
-    request_thread = threading.Thread(target=daemon.requestLoop)
+    request_thread = threading.Thread(target=daemon.requestLoop, daemon=True)
     request_thread.start()
 
     if node_address is None:

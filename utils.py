@@ -21,6 +21,9 @@ def get_proxy(id):
 
 
 def hashing(bits, string):
-    hash = hashlib.sha256(string.encode()).hexdigest()
-    hash = int(hash, 16) % pow(2, bits)
-    return hash
+    try:
+        hash = hashlib.sha256(string.encode('utf-8', 'ignore')).hexdigest()
+        hash = int(hash, 16) % pow(2, bits)
+        return hash
+    except:
+        return None

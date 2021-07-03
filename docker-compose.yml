@@ -1,17 +1,6 @@
 version: "2.2"
 
 services:
-  server-names:
-    image: image/scrapper
-    container_name: server-names
-    command: /bin/sh -c "echo 'export IP=10.0.0.1' >> ~/.bashrc && while sleep 1000; do :; done"
-    volumes:
-      - .:/scrapper
-    networks:
-      default:
-        ipv4_address: 10.0.0.1
-    expose:
-      - 8000
   chord-node-1:
     image: image/scrapper
     container_name: chord-node-1
@@ -100,9 +89,9 @@ services:
         ipv4_address: 10.0.0.9
     expose:
       - 8000
-  client-node:
+  client-node-1:
     image: image/scrapper
-    container_name: client-node
+    container_name: client-node-1
     command: /bin/sh -c "echo 'export IP=10.0.0.10' >> ~/.bashrc && while sleep 1000; do :; done"
     volumes:
       - .:/scrapper
@@ -111,7 +100,28 @@ services:
         ipv4_address: 10.0.0.10
     expose:
       - 8000
- 
+  client-node-2:
+    image: image/scrapper
+    container_name: client-node-2
+    command: /bin/sh -c "echo 'export IP=10.0.0.11' >> ~/.bashrc && while sleep 1000; do :; done"
+    volumes:
+      - .:/scrapper
+    networks:
+      default:
+        ipv4_address: 10.0.0.11
+    expose:
+      - 8000
+  server-names:
+    image: image/scrapper
+    container_name: server-names
+    command: /bin/sh -c "echo 'export IP=10.0.0.12' >> ~/.bashrc && while sleep 1000; do :; done"
+    volumes:
+      - .:/scrapper
+    networks:
+      default:
+        ipv4_address: 10.0.0.12
+    expose:
+      - 8000
 
 networks:
   default:
